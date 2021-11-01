@@ -1,4 +1,4 @@
-# FamFrench2015FF5
+# FamaFrench2015FF5
 Replication of the five Fama-French factors for the sample period July 1965 to July 2020 using
 monthly returns. This is a test for the PortSort class and the FFPortfolios function in which
 I compare the correlation of my factors to the original. Any correlation below 95% is considered 
