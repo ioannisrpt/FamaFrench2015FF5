@@ -18,5 +18,4 @@ Results:
 The high correlation of the SMB factor means that all my sorting and aggregating functions
 are working as intended. The problem is the definition of the Book-to-Market (HML),
 Profitability (RMW) and Investment (CMA) variables in FirmCharacteristics.csv. Exceptional 
-care is required to construct these variables. A potential problem is the use of PERMCOs instead
-of PERMNOs?
+care is required to construct these variables (and I was not very careful).
