@@ -36,7 +36,7 @@ Results:
     27 February 2022 - with 'FirmCharacteristicsFF5_last_traded.csv'
     
     1. SMB : 97.1% correlation
-    2. HML : 90.2% correlation 
+    2. HML : 94.8% correlation 
     3. RMW : 91.4% correlation 
     4. CMA : 97.2% correlation   
     
@@ -313,7 +313,12 @@ def getINV(at, at_lag):
 # ---------
 
 # Import CRSP data
-crspm = pd.read_csv(os.path.join(wdir, 'CRSPmonthlydata1963FF5.csv' ))
+ctotype32 = {'date_m' : np.int32,
+             'date_jun' : np.int32,
+             'PERMNO' : np.int32,
+             'RET' : np.float32}
+# crspm2 = pd.read_csv(os.path.join(wdir, 'CRSPmonthlydata1963FF5.csv' )).astype(ctotype32)
+crspm = pd.read_csv(os.path.join(wdir, 'CRSPmonthlyFF5.csv')).astype(ctotype32)
 
 # Show the format of crspm
 print(crspm.head(15))
@@ -327,6 +332,11 @@ print(crspm.head(15))
 # Import FirmCharacteristicsFF5 table
 #firmchars = pd.read_csv(os.path.join(wdir, 'FirmCharacteristicsFF5.csv'))
 firmchars = pd.read_csv(os.path.join(wdir, 'FirmCharacteristicsFF5_last_traded.csv'))
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#  TWO ADDITIONAL DEFINITIONS OF BOOK VALUE   #
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # RE-DEFINE BOOK VALUE 'be2' as in 
 # https://www.fredasongdrechsler.com/data-crunching/fama-french
@@ -342,19 +352,15 @@ firmchars['be2']=firmchars['seq']+firmchars['txditc']-firmchars['ps']
 firmchars['be2']=np.where(firmchars['be']>0, firmchars['be'], np.nan)
 
 # Book to market BtM2
-firmchars['BtM2'] = firmchars['be2']/firmchars['ME']
+firmchars['BtM2'] = firmchars['be2']/firmchars['ME_dec']
 # Operating profatibility OP2
 firmchars['OP2'] = firmchars[['operpro', 'be2']].apply(lambda x: getOP(*x), axis = 1)
 
 
-# DEfine CAP_W at the PERMNO level 
-firmchars = firmchars.sort_values(by = ['PERMNO', 'date_jun'], ignore_index = True)
-firmchars['CAP_W'] = firmchars.groupby('PERMNO')['CAP'].shift()
-
 
 # RE-DEFINE BOOK VALUE 'be3' as 'seq' -- Simplest defintion
 firmchars['be3'] = np.where(firmchars['seq']>=0, firmchars['seq'], np.nan)
-firmchars['BtM3'] = firmchars['be3'] /firmchars['ME']
+firmchars['BtM3'] = firmchars['be3'] /firmchars['ME_dec']
 firmchars['OP3'] = firmchars[['operpro', 'be3']].apply(lambda x: getOP(*x), axis = 1)
 
 print(firmchars.head(20))
@@ -533,6 +539,41 @@ ff5_all.reset_index().to_csv(os.path.join(wdir, 'myFF5_monthly.csv'), index = Fa
 ff5_all_c = ff5_all.copy()
 
 ff5_all_c.index = pd.to_datetime(ff5_all_c.index , format = '%Y%m')
+cumret = np.log( 1+ ff5_all_c).cumsum()
 
-np.log( 1+ ff5_all_c).cumsum().plot()
+# SMB
+plt.figure()
+cumret[['mySMB', 'SMB']].plot()
+plt.xlabel('Date')
+plt.ylabel('Cumulative return')
+plt.legend(['my SMB' , 'Original SMB'])
+plt.savefig(os.path.join(wdir, 'SMB_comparison.png'))
+
+
+# HML
+plt.figure()
+cumret[['myHML', 'HML']].plot()
+plt.ylabel('Cumulative return')
+plt.xlabel('Date')
+plt.legend(['my HML' , 'Original HML'])
+plt.savefig(os.path.join(wdir, 'HML_comparison.png'))
+
+
+# RMW
+plt.figure()
+cumret[['myRMW', 'RMW']].plot()
+plt.xlabel('Date')
+plt.ylabel('Cumulative return')
+plt.legend(['my RMW' , 'Original RMW'])
+plt.savefig(os.path.join(wdir, 'RMW_comparison.png'))
+
+# CMA
+plt.figure()
+cumret[['myCMA', 'CMA']].plot()
+plt.xlabel('Date')
+plt.ylabel('Cumulative return')
+plt.legend(['my CMA' , 'Original CMA'])
+plt.savefig(os.path.join(wdir, 'CMA_comparison.png'))
+
+
 
