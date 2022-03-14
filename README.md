@@ -25,8 +25,8 @@ I extract everything for the period Jan 1926 to Dec 2021 and then I subset it.
 # CreateFirmCharacteristicsFF5Dataset.py
 I extract all data necessary to construct Book-to-Market, Operating Profitability 
 and Investability variable as described in the paper from Compustat. The only filter 
-I use is that items mush be reported in USD. Then I proceed to define the aforementioned 
-variables and merge them with CRSP data of market equity. In the last part of the script
+I use is that items must be reported in USD. Then I proceed to define the aforementioned 
+variables and merge them with market equity data from CRSP. In the last part of the script
 "do_last_traded" I augment the final dataset with the last June dates for which a security
 is traded. This step is necessary for the PortSort class to work properly. 
 

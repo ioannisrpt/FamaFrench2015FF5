@@ -8,10 +8,9 @@
 Last tested at 26 February 2022
 
 
-Replication of the five Fama-French factors for the sample period July 1973 to July 2020 using
-monthly returns. This is a test for the PortSort class and the FFPortfolios function in which
-I compare the correlation of my factors to the original. Any correlation below 95% is considered 
-a failure from my side.
+Replication of the five Fama-French factors for the sample period July 1973 to Dec 2021 using
+monthly returns. I compare the correlation of my factors to the original. Any correlation below 
+95% is considered a failure from my side. 
 
 The paper can be found at 
 https://www.sciencedirect.com/science/article/pii/S0304405X14002323
