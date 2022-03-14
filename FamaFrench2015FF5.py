@@ -18,40 +18,15 @@ https://www.sciencedirect.com/science/article/pii/S0304405X14002323
 
 
 Results:
---------
-    1 November 2021 - with 'FirmCharacteristics.csv'
-    
-    1. SMB : 96.0% correlation
-    2. HML : 87.0% correlation
-    3. RMW : 84.0% correlation
-    4. CMA : 77.8% correlation 
-    
-    6 February 2022 - with 'FirmCharacteristicsFF5.csv'
-    
-    1. SMB : 97.2% correlation
-    2. HML : 84.7% correlation --> 87.5% with BtM2 (dgtw)
-    3. RMW : 91.1% correlation --> 91.7% with OP2 (dgtw)
-    4. CMA : 97.2% correlation     
-    
+-------- 
+
     27 February 2022 - with 'FirmCharacteristicsFF5_last_traded.csv'
     
-    1. SMB : 97.1% correlation
-    2. HML : 94.8% correlation 
-    3. RMW : 91.4% correlation 
-    4. CMA : 97.2% correlation   
+    1. SMB : 97.08% correlation
+    2. HML : 94.86% correlation 
+    3. RMW : 91.97% correlation 
+    4. CMA : 96.73% correlation   
     
-   
-Notes:
-------
-    1.There is something not quit right with factors related to Book Equity. Both HML and RMW exhibit 
-    low correlations with the original Fama-French factors. 
-
-    2. When merging compustat data (~26000 LPERMNOs) with CRSP data (~25000 PERMNOs), I end up
-    with only 21000 PERMNOs. I do not understand why this is happening. The difference is robust 
-    to EXCHCD = 1,2,3 and SHRCD  = 10, 11. Why is that? I did the merge of Compustat data with 
-    Compustat/CRSP link table correctly (I checked the code of others who end up replicating HML with
-    98% correlation).
-
 """
 
 
@@ -67,10 +42,13 @@ import matplotlib.pyplot as plt
 from PortSort import PortSort as ps
 
 # Main directory
-wdir = r'C:\Users\ropot\OneDrive\Desktop\Python Scripts\FamaFrench2015FF5'
+wdir = r'C:\Users\ropot\Desktop\Python Scripts\FamaFrench2015FF5'
 os.chdir(wdir)
 # Portfolio directory 
-FFDIR = r'C:\Users\ropot\OneDrive\Desktop\Python Scripts\FamaFrench2015FF5\FFDIR'
+ff_folder = 'FF5_portfolios'
+FFDIR = os.path.join(wdir, ff_folder)
+if ff_folder not in os.listdir(wdir):
+    os.mkdir(FFDIR)
 
 
 
@@ -139,158 +117,6 @@ def ApplyJuneScheme(df, date_col = 'date', date_format = '%Y%m%d'):
     return df
 
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#  DEFINITION OF BOOK VALUE 'be'   #
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-# Definition of book value as in Daniel et al. (2020).
-def BookValue(seq, ceq, pstk, at, lt, mib, pstkrv, pstkl, txditc, txdb, itcb, fyear):
-    """
-    Parameters
-    ----------
-    seq : shareholder equity  
-    ceq : common equity 
-    pstk : preferred stock 
-    at : total assets 
-    lt: liabilities 
-    mib : minority interest 
-    pstkrv : Book value of preferred stock is redemption 
-    pstkl : liquidation 
-    txditc : deferred taxes and investment tax credit O 
-    txdb : deferred taxes and investment tax credit O
-    itcb : investment tax credit O
-    fyear : fiscal year
-    """
-    
-    # Impute with zeros null values    
-    if pd.isnull(at):
-        at = 0
-    if pd.isnull(lt):
-        lt = 0
-    if pd.isnull(mib):
-        mib = 0
-    
-    # Define Stockholder's book equity SBE
-    if pd.notnull(seq):
-        SBE = seq
-    else:
-        if pd.notnull(ceq):
-            if pd.notnull(pstk):
-                SBE = ceq - pstk
-            else:
-                SBE = ceq + at - lt - mib
-        else:
-            SBE = np.nan
-            
-    
-    # Define book value of preferred stock BVPS
-    if pd.notnull(pstkrv):
-        BVPS = pstkrv
-    else:
-        if pd.notnull(pstkl):
-            BVPS = pstkl
-        else:
-            if pd.notnull(pstk):
-                BVPS = pstk
-            else:
-                BVPS = np.nan
-                
-    # Define deferred taxes DT
-    if pd.notnull(txditc):
-        DT = txditc
-    else:
-        DT = txdb + itcb
-        
-    
-    # Check if BVPS is null
-    if pd.isnull(BVPS):
-        BVPS = 0
-    # Check if DT is null
-    if pd.isnull(DT):
-        DT = 0
-    # Check if txdb is null
-    if pd.isnull(txdb):
-        txdb = 0
-        
-    # Definition of book value BE.
-    # A null value is accepted only from the SBE.
-    if fyear< 1993:
-        BE = SBE - BVPS + DT - txdb 
-    else:
-        BE = SBE - BVPS - txdb
-        
-    if BE< 0 :
-        BE = np.nan
-    
-    return BE
-
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#  DEFINITION OF OPERATING PROFITS 'operpro'  #
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-# Definition of operating profits 'operpro'
-def OperProfit(sale, cogs, xsga, xint):
-    """
-    Parameters
-    ----------
-    sale : revenue/total sales    
-    cogs : cost of goods sold  
-    xsga : selling, general, and administrative expenses
-    xint : interest expense    
-    """
-    
-    # Check if at least one of cogs, xsga or xint is not null
-    one_exists = pd.notnull(cogs) | pd.notnull(xsga) | pd.notnull(xint) 
-    # If one_exists is satisfied then imput the nulls with zeros
-    if one_exists:
-        if pd.notnull(cogs):
-            COGS = cogs
-        else: 
-            COGS = 0
-        if pd.notnull(xsga):
-            XSGA = xsga
-        else:
-            XSGA = 0
-        if pd.notnull(xint):
-            XINT = xint
-        else:
-            XINT = 0        
-        
-    
-    if pd.notnull(sale) & one_exists:
-        operpro = sale - COGS - XSGA - XINT    
-    else:
-        operpro = np.nan 
-        
-        
-    return operpro
-
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# OPERATING PROFITABILITY 'OP  #
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-def getOP(operpro, be):
-    if be>0:
-        OP = operpro/be
-    else:
-        OP = np.nan
-    return OP
-
-# ~~~~~~~~~~~~~~~~~~~~~~
-#     INVESTMENT 'INV  #
-# ~~~~~~~~~~~~~~~~~~~~~~
-
-
-def getINV(at, at_lag):
-    if (at > 0) & (at_lag > 0):
-        INV = at/at_lag - 1 
-    else:
-        INV = np.nan
-    return INV
 
 
 
@@ -318,7 +144,9 @@ ctotype32 = {'date_m' : np.int32,
              'PERMNO' : np.int32,
              'RET' : np.float32}
 # crspm2 = pd.read_csv(os.path.join(wdir, 'CRSPmonthlydata1963FF5.csv' )).astype(ctotype32)
-crspm = pd.read_csv(os.path.join(wdir, 'CRSPmonthlyFF5.csv')).astype(ctotype32)
+crspm = pd.read_csv(os.path.join(wdir, 'CRSPreturn1926m.csv')).astype(ctotype32).dropna()
+# Subset it for dates after June 1963
+crspm  = crspm[crspm['date_jun']>=196306].reset_index(drop = True)
 
 # Show the format of crspm
 print(crspm.head(15))
@@ -332,38 +160,23 @@ print(crspm.head(15))
 # Import FirmCharacteristicsFF5 table
 #firmchars = pd.read_csv(os.path.join(wdir, 'FirmCharacteristicsFF5.csv'))
 firmchars = pd.read_csv(os.path.join(wdir, 'FirmCharacteristicsFF5_last_traded.csv'))
+# Subset it for dates after June 1963
+firmchars  = firmchars[firmchars['date_jun']>=196306].reset_index(drop = True)
+# Subset for EXCHCD
+firmchars = firmchars.dropna(subset = ['EXCHCD'])
+firmchars = firmchars[firmchars['EXCHCD'].isin(set([1,2,3]))]
+# Define NYSE stocks for constructing breakpoints
+nyse1 = firmchars['EXCHCD'] == 1
+nyse2 = firmchars['SHRCD'] == 10.0
+nyse3 = firmchars['SHRCD'] == 11.0
+firmchars['NYSE'] = np.where(nyse1 & ( nyse2 | nyse3), 1, 0)
+# Subset for ordinary common shares
+shrcd = [10, 11, 12]
+firmchars = firmchars[firmchars['SHRCD'].isin(set(shrcd))].copy()
 
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#  TWO ADDITIONAL DEFINITIONS OF BOOK VALUE   #
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-# RE-DEFINE BOOK VALUE 'be2' as in 
-# https://www.fredasongdrechsler.com/data-crunching/fama-french
-
-# create preferrerd stock
-firmchars['ps']=np.where(firmchars['pstkrv'].isnull(), firmchars['pstkl'], firmchars['pstkrv'])
-firmchars['ps']=np.where(firmchars['ps'].isnull(),firmchars['pstk'], firmchars['ps'])
-firmchars['ps']=np.where(firmchars['ps'].isnull(),0,firmchars['ps'])
-firmchars['txditc']=firmchars['txditc'].fillna(0)
-
-# create book equity
-firmchars['be2']=firmchars['seq']+firmchars['txditc']-firmchars['ps']
-firmchars['be2']=np.where(firmchars['be']>0, firmchars['be'], np.nan)
-
-# Book to market BtM2
-firmchars['BtM2'] = firmchars['be2']/firmchars['ME_dec']
-# Operating profatibility OP2
-firmchars['OP2'] = firmchars[['operpro', 'be2']].apply(lambda x: getOP(*x), axis = 1)
-
-
-
-# RE-DEFINE BOOK VALUE 'be3' as 'seq' -- Simplest defintion
-firmchars['be3'] = np.where(firmchars['seq']>=0, firmchars['seq'], np.nan)
-firmchars['BtM3'] = firmchars['be3'] /firmchars['ME_dec']
-firmchars['OP3'] = firmchars[['operpro', 'be3']].apply(lambda x: getOP(*x), axis = 1)
 
 print(firmchars.head(20))
+
 
 # -------------------
 # FAMA-FRENCH FACTORS
@@ -377,7 +190,6 @@ ff5 = pd.read_csv(os.path.join(wdir, 'FF5_monthly.csv'))
 print(ff5.head(15))
 
 
-
 # Define PortSort class for the construction of all portfolios
 portchar = ps.PortSort(df = firmchars,
                        entity_id = 'PERMNO',
@@ -389,14 +201,17 @@ portchar = ps.PortSort(df = firmchars,
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-# Create the 2 Size portfolios
+# Create the 2 Size portfolios. 
+# Notice that sorting on size depends on the firm size ('ME')
+# but the return weights depend on market cap at the security-PERMNO
+# level ('CAP_W'). This is the most intuitive approach.
 portchar.FFPortfolios(ret_data = crspm, ret_time_id = 'date_m', 
                       FFcharacteristics = ['ME'], 
                       FFlagged_periods = [1], 
                       FFn_portfolios = [2],
-                      FFquantile_filters = [['EXCHCD', 1]], 
+                      FFquantile_filters = [['NYSE', 1]], 
                       FFdir = FFDIR, 
-                      weight_col = 'ME_W')
+                      weight_col = 'CAP_W')
     
 # Renaming the portfolios as per Fama & French (2015) 
 # Size : 1 = Small, 2 = Big
@@ -425,9 +240,9 @@ portchar.FFPortfolios(ret_data = crspm, ret_time_id = 'date_m',
                       FFcharacteristics = ['ME', 'BtM'],
                       FFlagged_periods = [1, 1], 
                       FFn_portfolios = [2, np.array([0, 0.3, 0.7]) ],
-                      FFquantile_filters = [['EXCHCD', 1], ['EXCHCD', 1]], 
+                      FFquantile_filters = [['NYSE', 1], ['NYSE', 1]], 
                       FFdir = FFDIR, 
-                      weight_col = 'ME_W')
+                      weight_col = 'CAP_W')
 
     
 # Renaming the portfolios as per Fama & French (2015) 
@@ -458,9 +273,9 @@ portchar.FFPortfolios(ret_data = crspm, ret_time_id = 'date_m',
                       FFcharacteristics=  ['ME', 'OP'], 
                       FFlagged_periods = [1,1], 
                       FFn_portfolios = [2, np.array([0, 0.3, 0.7]) ], 
-                      FFquantile_filters = [['EXCHCD', 1], ['EXCHCD', 1]], 
+                      FFquantile_filters = [['NYSE', 1], ['NYSE', 1]], 
                       FFdir = FFDIR,
-                      weight_col = 'ME_W')
+                      weight_col = 'CAP_W')
 
     
 # Renaming the portfolios as per Fama & French (2015) 
@@ -493,12 +308,12 @@ portchar.FFPortfolios(ret_data = crspm, ret_time_id = 'date_m',
                       FFcharacteristics = ['ME', 'INV'], 
                       FFlagged_periods = [1,1], 
                       FFn_portfolios = [2, np.array([0, 0.3, 0.7]) ], 
-                      FFquantile_filters = [['EXCHCD', 1], ['EXCHCD', 1]], 
+                      FFquantile_filters = [['NYSE', 1], ['NYSE', 1]], 
                       FFdir = FFDIR, 
-                      weight_col = 'ME_W')
+                      weight_col = 'CAP_W')
 
     
-# Renaming the portfolios as per Fama & French (2015) 
+# Renaming the portfolios as per Fam& French (2015) 
 # Size : 1 = Small, 2 = Big
 # INV : 1 = Conservative, 2 = Neutral, 3 = Aggressive
 sizecma_def = {'1_1' : 'SC', '1_2' : 'SN', '1_3' : 'SA', \
