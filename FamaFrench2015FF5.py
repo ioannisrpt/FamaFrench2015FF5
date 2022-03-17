@@ -8,9 +8,9 @@
 Last tested at 26 February 2022
 
 
-Replication of the five Fama-French factors for the sample period July 1973 to Dec 2021 using
-monthly returns. I compare the correlation of my factors to the original. Any correlation below 
-95% is considered a failure from my side. 
+Replication of the five Fama-French factors for the sample period July 1973 to December 2021 using
+monthly returns. I compare the correlation of my factors to the original. Any correlation below 95% is considered 
+a failure from my side.
 
 The paper can be found at 
 https://www.sciencedirect.com/science/article/pii/S0304405X14002323
@@ -19,12 +19,27 @@ https://www.sciencedirect.com/science/article/pii/S0304405X14002323
 Results:
 -------- 
 
-    27 February 2022 - with 'FirmCharacteristicsFF5_last_traded.csv'
+    Specification 1 - Reported
+    ----------------
+    Stock universe: SHRCD = 10, 11 and EXCHCD = 1, 2, 3
+    Breakpoints: SHRCD = 10, 11 and EXCHCD = 1
+        
+    1. SMB : 97.19% correlation
+    2. HML : 94.99% correlation 
+    3. RMW : 91.81% correlation 
+    4. CMA : 97.30% correlation   
     
-    1. SMB : 97.08% correlation
-    2. HML : 94.86% correlation 
-    3. RMW : 91.97% correlation 
-    4. CMA : 96.73% correlation   
+
+    Specification 2
+    ----------------
+    Stock universe: SHRCD = 10, 11 and EXCHCD = 1, 2, 3
+    Breakpoints: SHRCD = 10, 11 and EXCHCD = 1  
+    Compustat data: CompCount >= 3
+ 
+    1. SMB : 97.20% correlation
+    2. HML : 94.94% correlation 
+    3. RMW : 91.74% correlation 
+    4. CMA : 97.23% correlation   
     
 """
 
@@ -161,6 +176,8 @@ print(crspm.head(15))
 firmchars = pd.read_csv(os.path.join(wdir, 'FirmCharacteristicsFF5_last_traded.csv'))
 # Subset it for dates after June 1963
 firmchars  = firmchars[firmchars['date_jun']>=196306].reset_index(drop = True)
+# Count the number of years that a firm/GVKEY appears in the dataset
+firmchars['CompCount'] = firmchars.groupby('GVKEY')['GVKEY'].transform('count')
 # Subset for EXCHCD
 firmchars = firmchars.dropna(subset = ['EXCHCD'])
 firmchars = firmchars[firmchars['EXCHCD'].isin(set([1,2,3]))]
@@ -170,7 +187,7 @@ nyse2 = firmchars['SHRCD'] == 10.0
 nyse3 = firmchars['SHRCD'] == 11.0
 firmchars['NYSE'] = np.where(nyse1 & ( nyse2 | nyse3), 1, 0)
 # Subset for ordinary common shares
-shrcd = [10, 11, 12]
+shrcd = [10, 11]
 firmchars = firmchars[firmchars['SHRCD'].isin(set(shrcd))].copy()
 
 
