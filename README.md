@@ -1,10 +1,10 @@
 # Replication of Fama & French (2015) - A five factor asset pricing model
 I replicate the five Fama-French factors on the monthly frequency. 
 The results of my replication in terms of correlation are as follows:
-1. SMB: 97.08% 
-2. HML: 94.86%
-3. RMW: 91.97%
-4. CMA: 96.73%
+1. SMB: 97.19% 
+2. HML: 94.99%
+3. RMW: 91.81%
+4. CMA: 97.30%
 
 The "Cumulative returns" folder contains a visual comparison of the replicated factors
 with the original by plotting their cumulative returns from July 1963 to December 2021. 
