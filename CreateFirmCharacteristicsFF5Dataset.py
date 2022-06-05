@@ -5,8 +5,9 @@
 
 """
 
-Use CRSP and Compustat data to construct the FirmCharacteristics dataset. This will be 
-the master dataset used in constructing all kinds of characteristic sorted portfolios. 
+Use CRSP and Compustat data to construct the FirmCharacteristics dataset. 
+This will be the master dataset used in constructing all kinds of characteristic
+sorted portfolios. 
 
 
 The Compustat data is the whole Compustat universe as downloaded from 
@@ -21,16 +22,14 @@ import numpy as np
 
 
 # Main directory
-wdir = r'C:\Users\ropot\Desktop\Python Scripts\FamaFrench2015FF5'
+wdir = r'C:\Users\ropot\Desktop\Python Scripts\FamaFrench2015 Git\FamaFrench2015FF5'
 os.chdir(wdir)
 
 
-# Control execution
-do_last_traded = True
 
-# -------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #                FUNCTIONS - START
-# ------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -109,9 +108,9 @@ def ApplyJuneScheme(df, date_col = 'date', date_format = '%Y%m%d'):
     
     
     
-# -------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #                FUNCTIONS - END
-# ------------------------------------------------------------------------------------ 
+# ----------------------------------------------------------------------------- 
 
 
 
@@ -481,51 +480,6 @@ print('Merge Compustat and CRSP data - END \n')
 # Save final dataset
 firmchars.to_csv(os.path.join(wdir, 'FirmCharacteristicsFF5.csv'), index = False)
 
-
-
-# Do last traded day/month --> date_jun
-# This step is necessary for the PortSort class to work properly.
-# It enhances the Compustat/CRSP dataset with the last date_jun that a
-# a security was traded. These extra rows serve as name/identity
-# placeholders so that the sorting process can include the delisted
-# securities. If we omit this step, then our dataset will suffer
-# from look-ahead bias; we implicitly exclude from July t - June t+1 
-# securities that were delisted in that same period.
-if do_last_traded:
-    
-    print('Augment FirmCharacteristics with last traded month - START \n')
-
-    # Import the CRSP return dataset 
-    crspm = pd.read_csv(os.path.join(wdir, 'CRSPreturn1926m.csv')).astype(ctotype32)
-    # Isolate last traded month
-    crspm = crspm.sort_values(by = ['PERMNO', 'date_m'])
-    last_traded_m = crspm.drop_duplicates(subset = ['PERMNO'], keep = 'last').reset_index(drop = True)
-    
-    # Concat with main dataframe
-    firmchars2 = pd.concat([firmchars, last_traded_m], axis = 0)
-    # Sort by PERMNO, date_jun and date_m
-    firmchars2 = firmchars2.sort_values(by = ['PERMNO', 'date_jun','date_m'], ignore_index = True)
-    # Drop duplicates date_m/PERMNO pairs and keep the first observation
-    firmchars2 = firmchars2.drop_duplicates(subset = ['PERMNO', 'date_jun'], keep = 'first')
-    
-    # The null values of the CRSP columns correspond to cases when 
-    # the security stopped trading (delisted) and the Compustat columns 
-    # have captured the last trading instance of the security in a date_jun date.
-    # We need to fill the null values with 'PERMNO', 'EXCHCD', 'SHRCD'
-    #cap_null_cols = ['PERMNO', 'EXCHCD', 'SHRCD']
-    #firmchars[cap_null_cols] = firmchars[cap_null_cols].fillna(method = 'ffill')
-    id_cols = ['EXCHCD', 'SHRCD', 'LPERMCO', 'GVKEY']
-    firmchars2[id_cols] = firmchars2.groupby('PERMNO')[id_cols].fillna(method = 'ffill')
-    
-    # Re-define lagged cap value
-    firmchars2['CAP_W'] = firmchars2.groupby('PERMNO')['CAP'].shift()  
-    firmchars2['ME_W'] = firmchars2.groupby('GVKEY')['CAP_W'].transform(lambda x: x.sum(min_count = 1))
-
-    
-    
-    firmchars2.to_csv(os.path.join(wdir, 'FirmCharacteristicsFF5_last_traded.csv'), index = False)
-    
-    print('Augment FirmCharacteristics with last traded month - END \n')
 
 
 

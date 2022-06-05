@@ -5,12 +5,12 @@
 
 """
 
-Last tested at 26 February 2022
+Last tested at 5 June 2022
 
 
-Replication of the five Fama-French factors for the sample period July 1973 to December 2021 using
-monthly returns. I compare the correlation of my factors to the original. Any correlation below 95% is considered 
-a failure from my side.
+Replication of the five Fama-French factors for the sample period July 1973 to 
+December 2021 using monthly returns. I compare the correlation of my factors to 
+the original. Any correlation below 95% is considered a failure from my side.
 
 The paper can be found at 
 https://www.sciencedirect.com/science/article/pii/S0304405X14002323
@@ -25,9 +25,9 @@ Results:
     Breakpoints: SHRCD = 10, 11 and EXCHCD = 1
         
     1. SMB : 97.19% correlation
-    2. HML : 94.99% correlation 
+    2. HML : 95.15% correlation 
     3. RMW : 91.81% correlation 
-    4. CMA : 97.30% correlation   
+    4. CMA : 97.32% correlation   
     
 
     Specification 2
@@ -53,90 +53,20 @@ import pandas as pd
 import numpy as np
 from functools import reduce
 import matplotlib.pyplot as plt
-from PortSort import PortSort as ps
+from portsort import portsort as ps
 
 # Main directory
-wdir = r'C:\Users\ropot\Desktop\Python Scripts\FamaFrench2015FF5'
+wdir = r'C:\Users\ropot\Desktop\Python Scripts\FamaFrench2015 Git\FamaFrench2015FF5'
 os.chdir(wdir)
+
+
+
 # Portfolio directory 
 ff_folder = 'FF5_portfolios'
 FFDIR = os.path.join(wdir, ff_folder)
 if ff_folder not in os.listdir(wdir):
     os.mkdir(FFDIR)
 
-
-
-
-
-# -------------------------------------------------------------------------------------
-#                FUNCTIONS - START
-# ------------------------------------------------------------------------------------
-
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# WEIGHTED MEAN IN A DATAFRAME    #
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-# Weighted mean ignoring nan values 
-def WeightedMean(x, df, weights):
-    """
-    Define the weighted mean function
-    """
-    # Mask both the values and the associated weights
-    ma_x = np.ma.MaskedArray(x, mask = np.isnan(x))
-    w = df.loc[x.index, weights]
-    ma_w = np.ma.MaskedArray(w, mask = np.isnan(w))
-    return np.average(ma_x, weights = ma_w)
-    
-    
-  
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#   MAP DATES TO JUNE DATES       #
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      
-        
-def JuneScheme(x):
-    """
-    Use the June-June scheme as in Fama-French.
-    
-    x must be a datetime object. It returns a June date
-    in the integer format of YYYYmm. 
-    """
-    # Get month and year
-    month = x.month
-    year = x.year
-
-    # x is mapped to a June date
-    if month<=6:
-        date_jun = year*100 + 6
-    else:
-        nyear = year + 1
-        date_jun = nyear*100 + 6
-            
-    return date_jun
-            
-    
-# Function that inputs a dataframe and a date column that applies the June Scheme
-# thus creating a new column named 'date_jun'
-def ApplyJuneScheme(df, date_col = 'date', date_format = '%Y%m%d'):
-    # Isolate the dates in date_col in a separate dataframe    
-    dates = pd.DataFrame(df[date_col].drop_duplicates().sort_values(), columns = [date_col])
-    # Define the June date column
-    dates['date_jun'] = pd.to_datetime(dates[date_col], format = date_format).apply(lambda x: JuneScheme(x)).astype(np.int32)
-    # Merge with original dataframe df. 
-    # The above process is very efficient since we don't have to deal
-    # with all rows of df but only with one set of dates.
-    df = pd.merge(df, dates, how = 'left', on = [date_col])
-    return df
-
-
-
-
-
-# -------------------------------------------------------------------------------------
-#                FUNCTIONS - END
-# ------------------------------------------------------------------------------------
 
 
 
@@ -157,7 +87,6 @@ ctotype32 = {'date_m' : np.int32,
              'date_jun' : np.int32,
              'PERMNO' : np.int32,
              'RET' : np.float32}
-# crspm2 = pd.read_csv(os.path.join(wdir, 'CRSPmonthlydata1963FF5.csv' )).astype(ctotype32)
 crspm = pd.read_csv(os.path.join(wdir, 'CRSPreturn1926m.csv')).astype(ctotype32).dropna()
 # Subset it for dates after June 1963
 crspm  = crspm[crspm['date_jun']>=196306].reset_index(drop = True)
@@ -171,9 +100,9 @@ print(crspm.head(15))
 # FIRM CHARACTERISTICS
 # --------------------
 
-# Import FirmCharacteristicsFF5 table
-#firmchars = pd.read_csv(os.path.join(wdir, 'FirmCharacteristicsFF5.csv'))
-firmchars = pd.read_csv(os.path.join(wdir, 'FirmCharacteristicsFF5_last_traded.csv'))
+# Import FirmCharacteristicsFF5 dataset
+firmchars = pd.read_csv(os.path.join(wdir, 'FirmCharacteristicsFF5.csv'))
+#firmchars = pd.read_csv(os.path.join(wdir, 'FirmCharacteristicsFF5_last_traded.csv'))
 # Subset it for dates after June 1963
 firmchars  = firmchars[firmchars['date_jun']>=196306].reset_index(drop = True)
 # Count the number of years that a firm/GVKEY appears in the dataset
@@ -194,6 +123,7 @@ firmchars = firmchars[firmchars['SHRCD'].isin(set(shrcd))].copy()
 print(firmchars.head(20))
 
 
+
 # -------------------
 # FAMA-FRENCH FACTORS
 # -------------------
@@ -206,11 +136,26 @@ ff5 = pd.read_csv(os.path.join(wdir, 'FF5_monthly.csv'))
 print(ff5.head(15))
 
 
+
 # Define PortSort class for the construction of all portfolios
 portchar = ps.PortSort(df = firmchars,
-                       entity_id = 'PERMNO',
-                       time_id = 'date_jun',
-                       save_dir = FFDIR)
+                        entity_id = 'PERMNO',
+                        time_id = 'date_jun',
+                        save_dir = FFDIR)
+
+# Augment with last traded date to account for delisted returns.
+# It enhances the Compustat/CRSP dataset (firmchars) with the last date_jun 
+# that a security was traded. These extra rows serve as name/identity
+# placeholders so that the sorting process can include the delisted
+# securities. If we omit this step, then our dataset will suffer
+# from look-ahead bias; we implicitly exclude from July t - June t+1 
+# securities that were delisted in that same period.
+# I also fill the last traded rows with 'NYSE', 'EXCHCD', 'GVKEY' and 
+# 'LPERMCO.  
+portchar.augment_last_traded(ret_data = crspm, ret_time_id = 'date_m',
+                             fill_cols = ['NYSE', 'EXCHCD', 'GVKEY', 'LPERMCO'])
+
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #                        SMB FACTOR                                     #
@@ -221,13 +166,14 @@ portchar = ps.PortSort(df = firmchars,
 # Notice that sorting on size depends on the firm size ('ME')
 # but the return weights depend on market cap at the security-PERMNO
 # level ('CAP_W'). This is the most intuitive approach.
-portchar.FFPortfolios(ret_data = crspm, ret_time_id = 'date_m', 
-                      FFcharacteristics = ['ME'], 
-                      FFlagged_periods = [1], 
-                      FFn_portfolios = [2],
-                      FFquantile_filters = [['NYSE', 1]], 
-                      FFdir = FFDIR, 
-                      weight_col = 'CAP_W')
+portchar.ff_portfolios(ret_data = crspm, ret_time_id = 'date_m', 
+                      ff_characteristics = ['ME'], 
+                      ff_lagged_periods = [1], 
+                      ff_n_portfolios = [2],
+                      ff_quantile_filters = [['NYSE', 1]], 
+                      weight_col = 'CAP_W',
+                      ff_dir = FFDIR)
+
     
 # Renaming the portfolios as per Fama & French (2015) 
 # Size : 1 = Small, 2 = Big
@@ -235,7 +181,7 @@ size_def = {1 : 'S', 2 : 'B'}
     
 # Isolate the portfolios and rename the columns
 # Also drop the first year as defined in the first index element of 'num_stocks'
-size_p = portchar.FFportfolios.copy().rename(columns = size_def)
+size_p = portchar.portfolios.copy().rename(columns = size_def)
 
 # Define the SMB factor (simplest form)
 size_p['mySMB']  = size_p['S'] - size_p['B']
@@ -252,13 +198,14 @@ print(smb_comp.corr())
 
 
 # Create the 2x3 Size and Book-to-Market portfolios 
-portchar.FFPortfolios(ret_data = crspm, ret_time_id = 'date_m', 
-                      FFcharacteristics = ['ME', 'BtM'],
-                      FFlagged_periods = [1, 1], 
-                      FFn_portfolios = [2, np.array([0, 0.3, 0.7]) ],
-                      FFquantile_filters = [['NYSE', 1], ['NYSE', 1]], 
-                      FFdir = FFDIR, 
-                      weight_col = 'CAP_W')
+portchar.ff_portfolios(ret_data = crspm, ret_time_id = 'date_m', 
+                      ff_characteristics = ['ME', 'BtM'],
+                      ff_lagged_periods = [1, 1], 
+                      ff_n_portfolios = [2, np.array([0, 0.3, 0.7]) ],
+                      ff_quantile_filters = [['NYSE', 1], ['NYSE', 1]], 
+                      weight_col = 'CAP_W',
+                      ff_dir = FFDIR)
+
 
     
 # Renaming the portfolios as per Fama & French (2015) 
@@ -269,7 +216,7 @@ sizebtm_def = {'1_1' : 'SL', '1_2' : 'SN', '1_3' : 'SH', \
     
 # Isolate the portfolios and rename the columns
 # Also drop the first year as defined in the first index element of 'num_stocks'
-sizebtm_p = portchar.FFportfolios.copy().rename(columns = sizebtm_def)
+sizebtm_p = portchar.portfolios.copy().rename(columns = sizebtm_def)
 
 # Define the HML factor
 sizebtm_p['myHML'] = (1/2)*(sizebtm_p['SH'] + sizebtm_p['BH']) - \
@@ -285,13 +232,13 @@ print(hml_comp.corr())
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Create the 2x3 Size and Profitability portfolios 
-portchar.FFPortfolios(ret_data = crspm, ret_time_id = 'date_m', 
-                      FFcharacteristics=  ['ME', 'OP'], 
-                      FFlagged_periods = [1,1], 
-                      FFn_portfolios = [2, np.array([0, 0.3, 0.7]) ], 
-                      FFquantile_filters = [['NYSE', 1], ['NYSE', 1]], 
-                      FFdir = FFDIR,
-                      weight_col = 'CAP_W')
+portchar.ff_portfolios(ret_data = crspm, ret_time_id = 'date_m', 
+                      ff_characteristics=  ['ME', 'OP'], 
+                      ff_lagged_periods = [1,1], 
+                      ff_n_portfolios = [2, np.array([0, 0.3, 0.7]) ], 
+                      ff_quantile_filters = [['NYSE', 1], ['NYSE', 1]], 
+                      weight_col = 'CAP_W',                      
+                      ff_dir = FFDIR)
 
     
 # Renaming the portfolios as per Fama & French (2015) 
@@ -302,7 +249,7 @@ sizermw_def = {'1_1' : 'SW', '1_2' : 'SN', '1_3' : 'SR', \
     
 # Isolate the portfolios and rename the columns
 # Also drop the first year as defined in the first index element of 'num_stocks'
-sizermw_p = portchar.FFportfolios.copy().rename(columns = sizermw_def)
+sizermw_p = portchar.portfolios.copy().rename(columns = sizermw_def)
 
 # Define the RMW factor
 sizermw_p['myRMW'] = (1/2)*(sizermw_p['SR'] + sizermw_p['BR']) - \
@@ -320,13 +267,13 @@ print(rmw_comp.corr())
 
 
 # Create the 2x3 Size and Investment portfolios 
-portchar.FFPortfolios(ret_data = crspm, ret_time_id = 'date_m', 
-                      FFcharacteristics = ['ME', 'INV'], 
-                      FFlagged_periods = [1,1], 
-                      FFn_portfolios = [2, np.array([0, 0.3, 0.7]) ], 
-                      FFquantile_filters = [['NYSE', 1], ['NYSE', 1]], 
-                      FFdir = FFDIR, 
-                      weight_col = 'CAP_W')
+portchar.ff_portfolios(ret_data = crspm, ret_time_id = 'date_m', 
+                      ff_characteristics = ['ME', 'INV'], 
+                      ff_lagged_periods = [1,1], 
+                      ff_n_portfolios = [2, np.array([0, 0.3, 0.7]) ], 
+                      ff_quantile_filters = [['NYSE', 1], ['NYSE', 1]], 
+                      weight_col = 'CAP_W',
+                      ff_dir = FFDIR)
 
     
 # Renaming the portfolios as per Fam& French (2015) 
@@ -337,7 +284,7 @@ sizecma_def = {'1_1' : 'SC', '1_2' : 'SN', '1_3' : 'SA', \
     
 # Isolate the portfolios and rename the columns
 # Also drop the first year as defined in the first index element of 'num_stocks'
-sizecma_p = portchar.FFportfolios.copy().rename(columns = sizecma_def)
+sizecma_p = portchar.portfolios.copy().rename(columns = sizecma_def)
 
 # Define the CMA factor
 sizecma_p['myCMA'] = (1/2)*(sizecma_p['SC'] + sizecma_p['BC']) - \
