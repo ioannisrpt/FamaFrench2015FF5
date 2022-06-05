@@ -2,7 +2,7 @@
 I replicate the five Fama-French factors on the monthly frequency. 
 The results of my replication in terms of correlation are as follows:
 1. SMB: 97.19% 
-2. HML: 94.99%
+2. HML: 95.15%
 3. RMW: 91.81%
 4. CMA: 97.30%
 
@@ -26,12 +26,10 @@ I extract everything for the period Jan 1926 to Dec 2021 and then I subset it.
 I extract all data necessary to construct Book-to-Market, Operating Profitability 
 and Investability variable as described in the paper from Compustat. The only filter 
 I use is that items must be reported in USD. Then I proceed to define the aforementioned 
-variables and merge them with market equity data from CRSP. In the last part of the script
-"do_last_traded" I augment the final dataset with the last June dates for which a security
-is traded. This step is necessary for the PortSort class to work properly. 
+variables and merge them with market equity data from CRSP. 
 
 # FamaFrench2015FF5.py
 I subset the data to include only common ordinary shares (SHRCD = 10, 11) that trade in
 NYSE, AMEX and NASDAQ (EXCHCD = 1, 2, 3) after June 1963. Then I proceed to construct 
-the factors using the methods of PortSort. Check https://github.com/ioannisrpt/PortSort 
+the factors using the methods of PortSort. Check https://github.com/ioannisrpt/portsort 
 for more details. 
